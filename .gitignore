@@ -1,6 +1,4 @@
-.DS_Store
-npm-debug.log
+bin
+build
+classes
 node_modules
-*.xml
-!example.xml
-/testxml/
