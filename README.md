@@ -1,87 +1,28 @@
-# Package to provide embedded Draw.io diagram editting support in Atom
+[![Build Status](https://travis-ci.org/jgraph/drawio.svg?branch=master)](https://travis-ci.org/jgraph/drawio)
 
-Create and edit your draw.io diagrams directly from within the Atom editor.
+About
+-----
+[draw.io](https://www.draw.io) is an online diagramming web site that delivers the source in this project.
 
-This is an early release - please feel free to contribute and improve this
-package.
+draw.io uses the [mxGraph library](https://github.com/jgraph/mxgraph) as the base of the stack, with the [GraphEditor example](https://github.com/jgraph/mxgraph/tree/master/javascript/examples/grapheditor) from mxGraph as the base of the application part. The mxGraph library build used is stored under /etc/mxgraph/mxClient.js.
 
-Note:
-Ideally, draw.io (mxfiles) should be able to be rendered when referenced
-from Markdown files as images.  Also, support needed to render in Github markdown
-and gh-pages/jekyll.
+License
+-------
+draw.io is licensed under the Apache v2.
 
-For now use either the 'Export to PNG' button or 'File->Embed->Image' option
-to allow for easy embedding of diagrams in Markdown files.
+Development
+-----------
 
-## Screenshot
-![Screenshot](screenshot.jpg)
-Enjoy :-)
+A development guide is being started on the GitHub project wiki. There is a [draw.io](http://stackoverflow.com/questions/tagged/draw.io) tag on Stack Overflow currently, please make sure any questions adhere to their guidelines for question.
 
-## License
+The [mxGraph documentation](https://jgraph.github.io/mxgraph/) provides a lot of the docs for the bottom part of the stack. There is an [mxgraph tag on SO](http://stackoverflow.com/questions/tagged/mxgraph).
 
-The atom-drawio project is released under the [MIT License](LICENSE).
+Running
+-------
+The simplest way to run draw.io initially is to fork this project, [publish the master branch to GitHub pages](https://help.github.com/categories/github-pages-basics/) and the [pages sites](https://jgraph.github.io/drawio/src/main/webapp/index.html) will have the full editor functionality (sans the integrations).
 
-Draw.io itself is released by jpgraph under the [Apache-2.0 License](https://github.com/jgraph/drawio/blob/master/LICENSE)
+The full packaged .war of the client and servlets is built when the project is tagged and available on the [releases page](https://github.com/jgraph/draw.io/releases).
 
-## Developer Notes
-
-### Git Subtree Draw.io repo
-Note: Change branch names below as appropriate - update here for reference.
-
-#### Add subtree
-```bash
-git subtree add --prefix drawio https://github.com/gbevan/drawio.git D20180402_support_atom --squash
-```
-
-#### Pull subtree
-```bash
-git subtree pull --prefix drawio https://github.com/gbevan/drawio.git D20180402_support_atom --squash
-```
-
-#### Prepare clone for pushing to drawio fork
-```bash
-git remote add gbevan-drawio git@github.com:gbevan/drawio.git
-```
-
-#### Get diff of subtree against remote branch
-```bash
-cd drawio
-git diff-tree -r --name-status gbevan-drawio/D20180402_support_atom
-837953b034d80c38b0f428f2cffffef449441718
-M	src/main/webapp/cache.manifest
-M	src/main/webapp/js/app.min.js
-M	src/main/webapp/js/viewer.min.js
-```
-This still reports changes even after the push to the subtree remote.
-Found this discussion - https://github.com/progit/progit2/issues/571
-```bash
-git diff-tree -r --name-status HEAD:drawio/ gbevan-drawio/D20180402_support_atom
-```
-(changes must have been committed)
-TODO: further testing needed of this above.
-
-#### Push subtree to fork
-To push changes back to the subtree fork:
-```bash
-git subtree push --prefix drawio gbevan-drawio D20180402_support_atom
-```
-and raise pull requests against the upstream repo as needed.
-
-### Prepare Build
-```bash
-npm run-script build
-```
-This prepares the drawio build by running `ant all` in `drawio/etc/build` -
-this the `*.min.js` files for drawio.
-
-### Release to Atom
-```bash
-# for a patch release
-apm publish patch
-
-# for a minor release
-apm publish minor
-
-# for a major release
-apm publish major
-```
+Supported Browsers
+------------------
+draw.io supports IE 11, Chrome 32+, Firefox 38+, Safari 9.1.x, 10.1.x and 11.0.x, Opera 20+, Native Android browser 5.1.x+, the default browser in the current and previous major iOS versions (e.g. 11.2.x and 10.3.x) and Edge 23+.
