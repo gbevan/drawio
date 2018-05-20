@@ -83,6 +83,12 @@
 		'#\n' +
 		'# identity: -\n' +
 		'#\n' +
+		'## Adds a prefix to the identity of cells to make sure they do not collide with existing cells (whose\n' +
+		'## IDs are numbers from 0..n, sometimes with a GUID prefix in the context of realtime collaboration).\n' +
+		'## Default is csvimport-.\n' +
+		'#\n' +
+		'# namespace: csvimport-\n' +
+		'#\n' +
 		'## Connections between rows ("from": source colum, "to": target column).\n' +
 		'## Label, style and invert are optional. Defaults are \'\', current style and false.\n' +
 		'## In addition to label, an optional fromlabel and tolabel can be used to name the column\n' +
@@ -564,7 +570,13 @@
 		
 		Editor.doMathJaxRender = function(container)
 		{
-			MathJax.Hub.Queue(['Typeset', MathJax.Hub, container]);
+			window.setTimeout(function()
+			{
+				if (container.style.visibility != 'hidden')
+				{
+					MathJax.Hub.Queue(['Typeset', MathJax.Hub, container]);
+				}
+			}, 0);
 		};
 
 		// Disables global typesetting and messages on startup, adds queue for
@@ -631,7 +643,7 @@
 			
 			this.graph.addListener(mxEvent.SIZE, mxUtils.bind(this, function(sender, evt)
 			{
-				if (this.graph.mathEnabled && this.graph.container.style.visibility != 'hidden')
+				if (this.graph.container != null && this.graph.mathEnabled)
 				{
 					Editor.MathJaxRender(this.graph.container);
 				}
@@ -734,8 +746,9 @@
 		DiagramFormatPanel.prototype.addView = function(div)
 		{
 			var div = diagramFormatPanelAddView.apply(this, arguments);
+			var file = this.editorUi.getCurrentFile();
 			
-			if (mxClient.IS_SVG)
+			if (mxClient.IS_SVG && (urlParams['embed'] == '1' || (file != null && file.isEditable())))
 			{
 				var ui = this.editorUi;
 				var editor = ui.editor;
@@ -1497,6 +1510,7 @@
 	mxStencilRegistry.libraries['ios7ui'] = [SHAPES_PATH + '/ios7/mxIOS7Ui.js', STENCIL_PATH + '/ios7/misc.xml'];
 	mxStencilRegistry.libraries['android'] = [SHAPES_PATH + '/mxAndroid.js', STENCIL_PATH + '/android/android.xml'];
 	mxStencilRegistry.libraries['electrical/transmission'] = [SHAPES_PATH + '/mxElectrical.js', STENCIL_PATH + '/electrical/transmission.xml'];
+	mxStencilRegistry.libraries['infographic'] = [SHAPES_PATH + '/mxInfographic.js'];
 	mxStencilRegistry.libraries['mockup/buttons'] = [SHAPES_PATH + '/mockup/mxMockupButtons.js'];
 	mxStencilRegistry.libraries['mockup/containers'] = [SHAPES_PATH + '/mockup/mxMockupContainers.js'];
 	mxStencilRegistry.libraries['mockup/forms'] = [SHAPES_PATH + '/mockup/mxMockupForms.js'];

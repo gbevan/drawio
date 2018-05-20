@@ -91,7 +91,7 @@
 			
 			dlg.init();
 		});
-		
+
 		editorUi.actions.put('exportSvg', new Action(mxResources.get('formatSvg') + '...', function()
 		{
 			editorUi.showExportDialog(mxResources.get('formatSvg'), true, mxResources.get('export'),
@@ -240,7 +240,22 @@
 		
 		editorUi.actions.addAction('close', function()
 		{
-			editorUi.fileLoaded(null);
+			var currentFile = editorUi.getCurrentFile();
+			
+			function fn()
+			{
+				editorUi.fileLoaded(null);
+			};
+			
+			if (currentFile != null && currentFile.isModified())
+			{
+				editorUi.confirm(mxResources.get('allChangesLost'), null, fn,
+					mxResources.get('cancel'), mxResources.get('discardChanges'));
+			}
+			else
+			{
+				fn();
+			}
 		});
 		
 		editorUi.actions.addAction('editShape...', mxUtils.bind(this, function()
@@ -318,6 +333,7 @@
 				// Google Drive File
 				else
 				{
+					// TODO: Allow team drives
 					editorUi.drive.executeRequest(gapi.client.drive.revisions.list({'fileId': file.getId()}), function(resp)
 					{
 						editorUi.spinner.stop();
@@ -329,6 +345,7 @@
 								item.getXml = function(success, error)
 								{
 									// Workaround for vanished head revision is to use current head revision from descriptor
+									// TODO: Allow team drives
 									editorUi.drive.executeRequest(gapi.client.drive.revisions.get({'fileId': file.getId(),
 										'revisionId': (resp.items[resp.items.length - 1] === item) ?
 										file.desc.headRevisionId : item.id}), function(resp)
@@ -628,7 +645,7 @@
 
 		editorUi.actions.addAction('keyboardShortcuts...', function()
 		{
-			if (mxClient.IS_CHROMEAPP)
+			if (mxClient.IS_CHROMEAPP || EditorUi.isElectronApp)
 			{
 				editorUi.openLink('https://www.draw.io/shortcuts.svg');
 			}
@@ -798,7 +815,7 @@
 		{
 			if (!mxClient.IS_CHROMEAPP && editorUi.isOffline())
 			{
-				this.addMenuItems(menu, ['about']);
+				this.addMenuItems(menu, ['about'], parent);
 			}
 			else
 			{
@@ -812,7 +829,7 @@
 				input.setAttribute('size', '25');
 				input.style.marginLeft = '8px';
 
-				mxEvent.addListener(input, 'keypress', mxUtils.bind(this, function(e)
+				mxEvent.addListener(input, 'keydown', mxUtils.bind(this, function(e)
 				{
 					var term = mxUtils.trim(input.value);
 					
@@ -820,13 +837,21 @@
 					{
 						this.editorUi.openLink('https://desk.draw.io/support/search/solutions?term=' +
 							encodeURIComponent(term));
+						input.value = '';
 						this.editorUi.logEvent({category: 'Help', action: 'search', label: term});
 						
-						window.setTimeout(mxUtils.bind(this, function()
+						if (this.editorUi.menubar != null)
 						{
-							this.editorUi.menubar.hideMenu();
-						}), 0);
+							window.setTimeout(mxUtils.bind(this, function()
+							{
+								this.editorUi.menubar.hideMenu();
+							}), 0);
+						}
 					}
+	                else if (e.keyCode == 27)
+	                {
+	                    input.value = '';
+	                }
 				}));
 				
 				item.firstChild.nextSibling.appendChild(input);
@@ -852,14 +877,26 @@
 					input.focus();
 				}, 0);
 				
-				this.addMenuItems(menu, ['-', 'quickStart', 'userManual', 'keyboardShortcuts', '-']);
+				this.addMenuItems(menu, ['-', 'quickStart', 'userManual', 'keyboardShortcuts', '-'], parent);
 				
 				if (!mxClient.IS_CHROMEAPP)
 				{
-					this.addMenuItems(menu, ['feedback']);
+					this.addMenuItems(menu, ['feedback'], parent);
 				}
 
-				this.addMenuItems(menu, ['support', '-', 'about']);
+				this.addMenuItems(menu, ['support', '-'], parent);
+				
+				if (!editorUi.isOffline() && !navigator.standalone && urlParams['embed'] != '1')
+				{
+					this.addMenuItems(menu, ['download'], parent);
+				}
+				
+				if (!editorUi.isOfflineApp() && urlParams['embed'] != '1')
+				{
+					this.addMenuItems(menu, ['offline'], parent);
+				}
+				
+				this.addMenuItems(menu, ['-', 'about'], parent);
 			}
 
 			if (urlParams['ruler'] == '1')
@@ -1732,11 +1769,14 @@
 					dlg.init();
 				}, parent);
 			}
-			
-			menu.addItem(mxResources.get('csv') + '...', null, function()
+
+			if (editorUi.showCsvImport)
 			{
-				editorUi.showImportCsvDialog();
-			}, parent);
+				menu.addItem(mxResources.get('csv') + '...', null, function()
+				{
+					editorUi.showImportCsvDialog();
+				}, parent);
+			}
 		})).isEnabled = isGraphEnabled;
 
 		this.put('theme', new Menu(mxUtils.bind(this, function(menu, parent)
@@ -1748,7 +1788,19 @@
 				editorUi.alert(mxResources.get('restartForChangeRequired'));
 			}, parent);
 
-			if (uiTheme != 'atlas' && uiTheme != 'dark')
+			if (uiTheme != 'atlas' && uiTheme != 'dark' && uiTheme != 'min')
+			{
+				menu.addCheckmark(item, Editor.checkmarkImage);
+			}
+
+			item = menu.addItem(mxResources.get('minimal'), null, function()
+			{
+				mxSettings.setUi('min');
+				mxSettings.save();
+				editorUi.alert(mxResources.get('restartForChangeRequired'));
+			}, parent);
+			
+			if (uiTheme == 'min')
 			{
 				menu.addCheckmark(item, Editor.checkmarkImage);
 			}
@@ -2006,19 +2058,24 @@
         			graph.getModel().endUpdate();
         		}
 			
-        		graph.container.focus();
-        		graph.setSelectionCell(cell);
         		graph.scrollCellToVisible(cell);
-    	    		
-    	    		return cell;
+        		graph.setSelectionCell(cell);
+        		graph.container.focus();
+
+        		if (graph.editAfterInsert)
+        		{
+        	        graph.startEditing(cell);
+        		}
+        		
+    	    	return cell;
 		};
 		
 		editorUi.actions.addAction('insertText', function()
 		{
 			if (graph.isEnabled() && !graph.isCellLocked(graph.getDefaultParent()))
 			{
-    	    			graph.startEditingAtCell(insertVertex('Text', 40, 20, 'text;html=1;resizable=0;autosize=1;' +
-    	    				'align=center;verticalAlign=middle;points=[];fillColor=none;strokeColor=none;rounded=0;'));
+    			graph.startEditingAtCell(insertVertex('Text', 40, 20, 'text;html=1;resizable=0;autosize=1;' +
+    				'align=center;verticalAlign=middle;points=[];fillColor=none;strokeColor=none;rounded=0;'));
 			}
 		}, null, null, Editor.ctrlKey + '+Shift+X').isEnabled = isGraphEnabled;
 		
@@ -2026,7 +2083,7 @@
 		{
 			if (graph.isEnabled() && !graph.isCellLocked(graph.getDefaultParent()))
 			{
-    	    			insertVertex('', 120, 60, 'whiteSpace=wrap;html=1;');
+    	    	insertVertex('', 120, 60, 'whiteSpace=wrap;html=1;');
 			}
 		}, null, null, Editor.ctrlKey + '+K').isEnabled = isGraphEnabled;
 		
@@ -2034,7 +2091,7 @@
 		{
 			if (graph.isEnabled() && !graph.isCellLocked(graph.getDefaultParent()))
 			{
-    	    			insertVertex('', 80, 80, 'ellipse;whiteSpace=wrap;html=1;');
+    	    	insertVertex('', 80, 80, 'ellipse;whiteSpace=wrap;html=1;');
 			}
 		}, null, null, Editor.ctrlKey + '+Shift+K').isEnabled = isGraphEnabled;
 		
@@ -2042,7 +2099,7 @@
 		{
 			if (graph.isEnabled() && !graph.isCellLocked(graph.getDefaultParent()))
 			{
-    	    			insertVertex('', 80, 80, 'rhombus;whiteSpace=wrap;html=1;');
+    	    	insertVertex('', 80, 80, 'rhombus;whiteSpace=wrap;html=1;');
 			}
 		}).isEnabled = isGraphEnabled;
 		
@@ -2528,17 +2585,6 @@
 				
 			menu.addSeparator(parent);
 			this.addMenuItem(menu, 'tags', parent);
-			menu.addSeparator(parent);
-
-			if (!editorUi.isOffline() && !navigator.standalone && urlParams['embed'] != '1')
-			{
-				this.addMenuItems(menu, ['download'], parent);
-			}
-			
-			if (!editorUi.isOfflineApp() && urlParams['embed'] != '1')
-			{
-				this.addMenuItems(menu, ['offline'], parent);
-			}
 		})));
 
 		this.put('file', new Menu(mxUtils.bind(this, function(menu, parent)

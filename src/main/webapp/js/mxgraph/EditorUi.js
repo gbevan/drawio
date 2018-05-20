@@ -487,6 +487,7 @@ EditorUi = function(editor, container, lightbox)
 	                 ['strokeColor', 'strokeWidth'],
 	                 ['fillColor', 'gradientColor'],
 	                 valueStyles,
+	                 ['opacity'],
 	                 ['align'],
 	                 ['html']];
 	
@@ -1361,7 +1362,7 @@ EditorUi.prototype.initCanvas = function()
 	var resize = null;
 	var ui = this;
 	
-	if (this.editor.chromeless)
+	if (this.editor.isChromelessView())
 	{
         resize = mxUtils.bind(this, function(autoscale, maxScale, cx, cy)
         {
@@ -1518,7 +1519,6 @@ EditorUi.prototype.initCanvas = function()
 				mxEvent.consume(evt);
 			}), Editor.previousLargeImage, mxResources.get('previousPage'));
 			
-			
 			var pageInfo = document.createElement('div');
 			pageInfo.style.display = 'inline-block';
 			pageInfo.style.verticalAlign = 'top';
@@ -1582,7 +1582,7 @@ EditorUi.prototype.initCanvas = function()
 			
 			addButton(mxUtils.bind(this, function(evt)
 			{
-				if (graph.lightbox)
+				if (graph.isLightboxView())
 				{
 					if (graph.view.scale == 1)
 					{
@@ -2152,7 +2152,7 @@ EditorUi.prototype.addBeforeUnloadListener = function()
 	// This must be disabled during save and image export
 	window.onbeforeunload = mxUtils.bind(this, function()
 	{
-		if (!this.editor.chromeless)
+		if (!this.editor.isChromelessView())
 		{
 			return this.onBeforeUnload();
 		}
@@ -2442,7 +2442,7 @@ EditorUi.prototype.resetScrollbars = function()
 			graph.view.setTranslate(0, 0);
 		}
 	}
-	else if (!this.editor.chromeless)
+	else if (!this.editor.isChromelessView())
 	{
 		if (mxUtils.hasScrollbars(graph.container))
 		{
@@ -2748,25 +2748,25 @@ EditorUi.prototype.updateActionStates = function()
 	
 	if (cells != null)
 	{
-	    	for (var i = 0; i < cells.length; i++)
-	    	{
-	    		var cell = cells[i];
-	    		
-	    		if (graph.getModel().isEdge(cell))
-	    		{
-	    			edgeSelected = true;
-	    		}
-	    		
-	    		if (graph.getModel().isVertex(cell))
-	    		{
-	    			vertexSelected = true;
-	    		}
-	    		
-	    		if (edgeSelected && vertexSelected)
+    	for (var i = 0; i < cells.length; i++)
+    	{
+    		var cell = cells[i];
+    		
+    		if (graph.getModel().isEdge(cell))
+    		{
+    			edgeSelected = true;
+    		}
+    		
+    		if (graph.getModel().isVertex(cell))
+    		{
+    			vertexSelected = true;
+    		}
+    		
+    		if (edgeSelected && vertexSelected)
 			{
 				break;
 			}
-    		}
+		}
 	}
 	
 	// Updates action states
@@ -3292,6 +3292,7 @@ EditorUi.prototype.hideDialog = function(cancel)
 			this.editor.graph.container.focus();
 		}
 		
+		mxUtils.clearSelection();
 		this.editor.fireEvent(new mxEventObject('hideDialog'));
 	}
 };
@@ -3711,7 +3712,8 @@ EditorUi.prototype.createKeyHandler = function(editor)
 	// Ignores graph enabled state but not chromeless state
 	keyHandler.isEnabledForEvent = function(evt)
 	{
-		return (!mxEvent.isConsumed(evt) && this.isGraphEvent(evt) && this.isEnabled());
+		return (!mxEvent.isConsumed(evt) && this.isGraphEvent(evt) && this.isEnabled() &&
+			(editorUi.dialogs == null || editorUi.dialogs.length == 0));
 	};
 	
 	// Routes command-key to control-key on Mac

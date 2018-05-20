@@ -195,6 +195,12 @@ Editor.nextLargeImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgC
 Editor.ctrlKey = (mxClient.IS_MAC) ? 'Cmd' : 'Ctrl';
 
 /**
+ * Specifies if the diagram should be saved automatically if possible. Default
+ * is true.
+ */
+Editor.popupsAllowed = true;
+
+/**
  * Editor inherits from mxEventSource
  */
 mxUtils.extend(Editor, mxEventSource);
@@ -272,6 +278,14 @@ Editor.prototype.init = function() { };
 /**
  * Sets the XML node for the current diagram.
  */
+Editor.prototype.isChromelessView = function()
+{
+	return this.chromeless;
+};
+
+/**
+ * Sets the XML node for the current diagram.
+ */
 Editor.prototype.setAutosave = function(value)
 {
 	this.autosave = value;
@@ -292,6 +306,11 @@ Editor.prototype.getEditBlankUrl = function(params)
 Editor.prototype.editAsNew = function(xml, title)
 {
 	var p = (title != null) ? '?title=' + encodeURIComponent(title) : '';
+	
+	if (urlParams['ui'] != null)
+	{
+		p += ((p.length > 0) ? '&' : '?') + 'ui=' + urlParams['ui'];
+	}
 	
 	if (this.editorWindow != null && !this.editorWindow.closed)
 	{
@@ -348,7 +367,7 @@ Editor.prototype.createGraph = function(themes, model)
  */
 Editor.prototype.resetGraph = function()
 {
-	this.graph.gridEnabled = !this.chromeless || urlParams['grid'] == '1';
+	this.graph.gridEnabled = !this.isChromelessView() || urlParams['grid'] == '1';
 	this.graph.graphHandler.guidesEnabled = true;
 	this.graph.setTooltips(true);
 	this.graph.setConnectable(true);
@@ -369,7 +388,7 @@ Editor.prototype.resetGraph = function()
  */
 Editor.prototype.readGraphState = function(node)
 {
-	this.graph.gridEnabled = node.getAttribute('grid') != '0' && (!this.chromeless || urlParams['grid'] == '1');
+	this.graph.gridEnabled = node.getAttribute('grid') != '0' && (!this.isChromelessView() || urlParams['grid'] == '1');
 	this.graph.gridSize = parseFloat(node.getAttribute('gridSize')) || mxGraph.prototype.gridSize;
 	this.graph.graphHandler.guidesEnabled = node.getAttribute('guides') != '0';
 	this.graph.setTooltips(node.getAttribute('tooltips') != '0');
@@ -377,7 +396,7 @@ Editor.prototype.readGraphState = function(node)
 	this.graph.connectionArrowsEnabled = node.getAttribute('arrows') != '0';
 	this.graph.foldingEnabled = node.getAttribute('fold') != '0';
 
-	if (this.chromeless && this.graph.foldingEnabled)
+	if (this.isChromelessView() && this.graph.foldingEnabled)
 	{
 		this.graph.foldingEnabled = urlParams['nav'] == '1';
 		this.graph.cellRenderer.forceControlClickHandler = this.graph.foldingEnabled;
@@ -394,7 +413,7 @@ Editor.prototype.readGraphState = function(node)
 		this.graph.pageScale = mxGraph.prototype.pageScale;
 	}
 
-	if (!this.graph.lightbox)
+	if (!this.graph.isLightboxView())
 	{
 		var pv = node.getAttribute('page');
 	

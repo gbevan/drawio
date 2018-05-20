@@ -20,7 +20,9 @@ function createWindow (opt = {})
 	{
 		width: 1600,
 		height: 1200,
-		'web-security': false,
+		nodeIntegration: false,
+		webViewTag: false,
+		'web-security': true,
 		allowRunningInsecureContent: __DEV__,
 		webPreferences: {
 			// preload: path.resolve('./preload.js'),
@@ -70,7 +72,7 @@ function createWindow (opt = {})
 
 		if (contents != null)
 		{
-			contents.executeJavaScript('global.__emt_isModified()', true,
+			contents.executeJavaScript('if(global.__emt_isModified!=null){global.__emt_isModified()}', true,
 				isModified =>
 				{
 					console.log('__emt_isModified', isModified)
@@ -127,7 +129,8 @@ function createWindow (opt = {})
 					'analytics': 0,
 					'picker': 0,
 					'mode': 'device',
-					'browser': 0
+					'browser': 0,
+					'export': 'https://exp.draw.io/ImageExport4/export'
 				},
 				slashes: true,
 			})
